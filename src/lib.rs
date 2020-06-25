@@ -11,6 +11,7 @@
 //!    are run, or nothing.
 //! 1. Expects you to never delete or rename a migration.
 //! 1. Expects file names and contents to be UTF-8.
+//! 1. There are no rollbacks - just write a new migration.
 //!
 //! You'll need to add these two crates as dependencies:
 //! ```toml
