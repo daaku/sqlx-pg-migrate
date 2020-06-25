@@ -1,0 +1,20 @@
+[package]
+name = "sqlx-pg-migrate"
+version = "1.0.0"
+authors = ["Naitik Shah <n@daaku.org>"]
+edition = "2018"
+description = "A library to run migrations on a PostgreSQL database using SQLx."
+readme = "readme.md"
+repository = "https://github.com/daaku/sqlx-pg-migrate"
+keywords = ["sql", "migrations"]
+categories = []
+license = "MIT"
+
+[dependencies]
+include_dir = "0.6"
+sqlx = { version = "0.3", default-features = false, features = ["postgres", "runtime-async-std"] }
+thiserror = "1.0"
+
+[dev-dependencies]
+async-attributes = "1.1"
+async-std = "1.6"
