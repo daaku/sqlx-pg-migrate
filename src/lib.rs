@@ -31,7 +31,7 @@
 //! static MIGRATIONS: Dir = include_dir!("migrations");
 //!
 //! # #[async_attributes::main]
-//! # async fn main() -> sqlx_pg_migrate::Result<()> {
+//! # async fn main() -> std::result::Result<(), sqlx_pg_migrate::Error> {
 //! #    let db_url = std::env::var("DATABASE_URL")
 //! #        .unwrap_or(String::from("postgresql://localhost/sqlxpgmigrate_doctest"));
 //! // Somewhere, probably in main, call the migrate function with your DB URL
@@ -195,7 +195,7 @@ mod tests {
     static MIGRATIONS: Dir = include_dir!("migrations");
 
     #[async_attributes::test]
-    async fn it_works() -> super::Result<()> {
+    async fn it_works() -> std::result::Result<(), super::Error> {
         let url = std::env::var("DATABASE_URL")
             .unwrap_or(String::from("postgresql://localhost/sqlxpgmigrate1"));
         // run it twice, second time should be a no-op
