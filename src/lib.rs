@@ -10,6 +10,7 @@
 //! 1. Will run everything in a single transaction, so all pending migrations
 //!    are run, or nothing.
 //! 1. Expects you to never delete or rename a migration.
+//! 1. Expects you to not put a new migration between two existing ones.
 //! 1. Expects file names and contents to be UTF-8.
 //! 1. There are no rollbacks - just write a new migration.
 //!
@@ -77,11 +78,12 @@ pub enum Error {
 type Result<T> = std::result::Result<T, Error>;
 
 fn base_and_db(url: &str) -> Result<(&str, &str)> {
-    let split: Vec<&str> = url.rsplitn(2, '/').collect();
-    if split.len() != 2 {
+    let base_split: Vec<&str> = url.rsplitn(2, '/').collect();
+    if base_split.len() != 2 {
         return Err(Error::InvalidURL(url.to_string()));
     }
-    Ok((split[1], split[0]))
+    let qmark_split: Vec<&str> = base_split[0].splitn(2, '?').collect();
+    Ok((base_split[1], qmark_split[0]))
 }
 
 async fn maybe_make_db(url: &str) -> Result<()> {
@@ -197,7 +199,7 @@ mod tests {
     #[async_attributes::test]
     async fn it_works() -> std::result::Result<(), super::Error> {
         let url = std::env::var("DATABASE_URL")
-            .unwrap_or(String::from("postgresql://localhost/sqlxpgmigrate1"));
+            .unwrap_or(String::from("postgresql://localhost/sqlxpgmigrate1?sslmode=disable"));
         // run it twice, second time should be a no-op
         for _ in 0..2 {
             match migrate(&url, &MIGRATIONS).await {
