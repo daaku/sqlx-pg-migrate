@@ -1,7 +1,7 @@
 name: build
 on: [push, pull_request]
 jobs:
-  container-job:
+  build:
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -15,7 +15,6 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-  build:
     steps:
     - uses: hecrj/setup-rust-action@v1
       with:
