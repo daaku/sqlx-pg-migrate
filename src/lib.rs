@@ -198,8 +198,9 @@ mod tests {
 
     #[async_attributes::test]
     async fn it_works() -> std::result::Result<(), super::Error> {
-        let url = std::env::var("DATABASE_URL")
-            .unwrap_or(String::from("postgresql://localhost/sqlxpgmigrate1?sslmode=disable"));
+        let url = std::env::var("DATABASE_URL").unwrap_or(String::from(
+            "postgresql://localhost/sqlxpgmigrate1?sslmode=disable",
+        ));
         // run it twice, second time should be a no-op
         for _ in 0..2 {
             match migrate(&url, &MIGRATIONS).await {
