@@ -56,6 +56,9 @@ pub enum Error {
     #[error("invalid URL `{0}`: could not determine DB name")]
     InvalidURL(String),
 
+    #[error("error connecting to existing database: {}", .source)]
+    ExistingConnectError { source: sqlx::Error },
+
     #[error("error connecting to base URL `{}` to create DB: {}", .url, .source)]
     BaseConnect { url: String, source: sqlx::Error },
 
@@ -87,8 +90,24 @@ fn base_and_db(url: &str) -> Result<(&str, &str)> {
 }
 
 async fn maybe_make_db(url: &str) -> Result<()> {
-    // TODO: first connect to the url, so the base connect of a possibly missing
-    // postgres db isn't required.
+    match PgConnection::connect(url).await {
+        Ok(_) => return Ok(()), // it exists, we're done
+        Err(err) => {
+            if let sqlx::Error::Database(dberr) = err {
+                // this indicates the database doesn't exist
+                if let Some("3D000") = dberr.code() {
+                    Ok(()) // it doesn't exist, continue to create it
+                } else {
+                    Err(Error::ExistingConnectError {
+                        source: sqlx::Error::Database(dberr),
+                    })
+                }
+            } else {
+                Err(Error::ExistingConnectError { source: err })
+            }
+        }
+    }?;
+
     let (base_url, db_name) = base_and_db(url)?;
     let mut db = match PgConnection::connect(&format!("{}/postgres", base_url)).await {
         Ok(db) => db,
@@ -99,15 +118,6 @@ async fn maybe_make_db(url: &str) -> Result<()> {
             })
         }
     };
-    let exists: bool = sqlx::query("SELECT true AS exists FROM pg_database WHERE datname = $1")
-        .bind(db_name)
-        .try_map(|row: PgRow| row.try_get("exists"))
-        .fetch_optional(&mut db)
-        .await?
-        .unwrap_or(false);
-    if exists {
-        return Ok(());
-    }
     sqlx::query(&format!(r#"CREATE DATABASE "{}""#, db_name))
         .execute(&mut db)
         .await?;
