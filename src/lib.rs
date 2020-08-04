@@ -115,7 +115,7 @@ async fn maybe_make_db(url: &str) -> Result<()> {
             return Err(Error::BaseConnect {
                 url: base_url.to_string(),
                 source: err,
-            })
+            });
         }
     };
     sqlx::query(&format!(r#"CREATE DATABASE "{}""#, db_name))
@@ -124,8 +124,9 @@ async fn maybe_make_db(url: &str) -> Result<()> {
     Ok(())
 }
 
-async fn get_migrated(db: &mut PgConnection) -> Result<Vec<String>> {
-    let migrated = sqlx::query("SELECT migration FROM sqlx_pg_migrate ORDER BY id")
+async fn get_migrated(db: &mut PgConnection, migration_table: &str) -> Result<Vec<String>> {
+    let migrated = sqlx::query(&format!("SELECT migration FROM {} ORDER BY id", migration_table))
+        .bind(migration_table)
         .try_map(|row: PgRow| row.try_get("migration"))
         .fetch_all(db)
         .await;
@@ -148,25 +149,29 @@ async fn get_migrated(db: &mut PgConnection) -> Result<Vec<String>> {
     }
 }
 
+const DEFAULT_MIGRATION_TABLE: &str = "sqlx_pg_migrate";
+
 /// Runs the migrations contained in the directory. See module documentation for
 /// more information.
-pub async fn migrate(url: &str, dir: &Dir<'_>) -> Result<()> {
+pub async fn migrate(url: &str, dir: &Dir<'_>, table: Option<&str>) -> Result<()> {
+    let migration_table = table.unwrap_or_else(|| DEFAULT_MIGRATION_TABLE);
+
     maybe_make_db(url).await?;
     let mut db = PgConnection::connect(url).await?;
-    let migrated = get_migrated(&mut db).await?;
+    let migrated = get_migrated(&mut db, migration_table).await?;
     let mut tx = db.begin().await?;
     if migrated.is_empty() {
         sqlx::query(
-            r#"
-                CREATE TABLE IF NOT EXISTS sqlx_pg_migrate (
+            &format!(r#"
+                CREATE TABLE IF NOT EXISTS {} (
                     id SERIAL PRIMARY KEY,
                     migration TEXT UNIQUE,
                     created TIMESTAMP NOT NULL DEFAULT current_timestamp
                 );
-            "#,
+            "#, migration_table)
         )
-        .execute(&mut tx)
-        .await?;
+            .execute(&mut tx)
+            .await?;
     }
     let mut files: Vec<_> = dir.files().iter().collect();
     if migrated.len() > files.len() {
@@ -190,7 +195,7 @@ pub async fn migrate(url: &str, dir: &Dir<'_>) -> Result<()> {
             .contents_utf8()
             .ok_or_else(|| Error::InvalidMigrationContent(f.path().to_owned()))?;
         tx.execute(content).await?;
-        sqlx::query("INSERT INTO sqlx_pg_migrate (migration) VALUES ($1)")
+        sqlx::query(&format!("INSERT INTO {} (migration) VALUES ($1)", migration_table))
             .bind(path)
             .execute(&mut tx)
             .await?;
@@ -213,7 +218,7 @@ mod tests {
         ));
         // run it twice, second time should be a no-op
         for _ in 0..2 {
-            match migrate(&url, &MIGRATIONS).await {
+            match migrate(&url, &MIGRATIONS, Some("migration")).await {
                 Err(err) => panic!("migrate failed with: {}", err),
                 _ => (),
             };
