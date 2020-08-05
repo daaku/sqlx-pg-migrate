@@ -6,7 +6,8 @@
 //!
 //! The library:
 //! 1. Will create the DB if necessary.
-//! 1. Will create a table named `sqlx_pg_migrate` to manage the migration state.
+//! 1. Will either create a table called `sqlx_pg_migrate` or the given table name
+//!    to manage the migration state.
 //! 1. Will run everything in a single transaction, so all pending migrations
 //!    are run, or nothing.
 //! 1. Expects you to never delete or rename a migration.
@@ -19,6 +20,11 @@
 //! [dependencies]
 //! include_dir = "0.6"
 //! sqlx-pg-migrate = "1.0"
+//! ```
+//!
+//! Note! If you're using tokio, add `runtime-tokio` as a feature to the `sqlx` dependency:
+//! ```toml
+//! sqlx = { version = "0.3", default-features = false, features = ["postgres", "runtime-tokio"] }
 //! ```
 //!
 //! The usage looks like this:
@@ -37,7 +43,7 @@
 //! #        .unwrap_or(String::from("postgresql://localhost/sqlxpgmigrate_doctest"));
 //! // Somewhere, probably in main, call the migrate function with your DB URL
 //! // and the included migrations.
-//! migrate(&db_url, &MIGRATIONS).await?;
+//! migrate(&db_url, &MIGRATIONS, None).await?;
 //! #    Ok(())
 //! # }
 //! ```
@@ -218,7 +224,7 @@ mod tests {
         ));
         // run it twice, second time should be a no-op
         for _ in 0..2 {
-            match migrate(&url, &MIGRATIONS, Some("migration")).await {
+            match migrate(&url, &MIGRATIONS, None).await {
                 Err(err) => panic!("migrate failed with: {}", err),
                 _ => (),
             };
