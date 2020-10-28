@@ -44,7 +44,7 @@
 
 use include_dir::Dir;
 use sqlx::postgres::PgRow;
-use sqlx::{Connect, Connection, Executor, PgConnection, Row};
+use sqlx::{Connection, Executor, PgConnection, Row};
 use thiserror::Error;
 
 /// The various kinds of errors that can arise when running the migrations.
@@ -95,7 +95,7 @@ async fn maybe_make_db(url: &str) -> Result<()> {
         Err(err) => {
             if let sqlx::Error::Database(dberr) = err {
                 // this indicates the database doesn't exist
-                if let Some("3D000") = dberr.code() {
+                if let Some("3D000") = dberr.code().as_deref() {
                     Ok(()) // it doesn't exist, continue to create it
                 } else {
                     Err(Error::ExistingConnectError {
@@ -134,7 +134,7 @@ async fn get_migrated(db: &mut PgConnection) -> Result<Vec<String>> {
         Err(err) => {
             if let sqlx::Error::Database(dberr) = err {
                 // this indicates the table doesn't exist
-                if let Some("42P01") = dberr.code() {
+                if let Some("42P01") = dberr.code().as_deref() {
                     Ok(vec![])
                 } else {
                     Err(Error::CurrentMigrations {
