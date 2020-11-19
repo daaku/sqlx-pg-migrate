@@ -1,6 +1,6 @@
 [package]
 name = "sqlx-pg-migrate"
-version = "1.0.5"
+version = "1.1.0"
 authors = ["Naitik Shah <n@daaku.org>"]
 edition = "2018"
 description = "A library to run migrations on a PostgreSQL database using SQLx."
