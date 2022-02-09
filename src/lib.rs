@@ -31,7 +31,7 @@
 //! // The path here is relative to your cargo root.
 //! static MIGRATIONS: Dir = include_dir!("migrations");
 //!
-//! # #[tokio::main]
+//! # #[async_attributes::main]
 //! # async fn main() -> std::result::Result<(), sqlx_pg_migrate::Error> {
 //! #    let db_url = std::env::var("DATABASE_URL")
 //! #        .unwrap_or(String::from("postgresql://localhost/sqlxpgmigrate_doctest"));
@@ -206,7 +206,7 @@ mod tests {
 
     static MIGRATIONS: Dir = include_dir!("migrations");
 
-    #[tokio::test]
+    #[async_attributes::test]
     async fn it_works() -> std::result::Result<(), super::Error> {
         let url = std::env::var("DATABASE_URL").unwrap_or(String::from(
             "postgresql://localhost/sqlxpgmigrate1?sslmode=disable",
