@@ -168,7 +168,7 @@ pub async fn migrate(url: &str, dir: &Dir<'_>) -> Result<()> {
         .execute(&mut tx)
         .await?;
     }
-    let mut files: Vec<_> = dir.files().iter().collect();
+    let mut files: Vec<_> = dir.files().collect();
     if migrated.len() > files.len() {
         return Err(Error::DeletedMigrations);
     }
